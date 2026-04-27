@@ -55,15 +55,15 @@ void setup() {
    uint8_t result;
   uint16_t data[6];
   // Inicializar la instancia de ModbusMaster
-  node.begin(10, RS485Serial); // El primer parámetro es la dirección del dispositivo esclavo
+  node.begin(0x14, RS485Serial); // 20 El primer parámetro es la dirección del dispositivo esclavo
 
   // Asignar las funciones de callback
   node.preTransmission(preTransmission);
   node.postTransmission(postTransmission);
 
-  node.writeSingleRegister(1, 8);
+  //node.writeSingleRegister(1, 8);
 
-  delay(1000);
+  //delay(1000);
   //result = node.readHoldingRegisters(83,6);
   // if (result == node.ku8MBSuccess)
   // {
@@ -82,35 +82,30 @@ void loop() {
  
   uint8_t result;
   uint16_t data[6];
-Serial.println("Activado");
+  Serial.println("Activado");
   //delay(300000);
-  result = node.readHoldingRegisters(83,6);
+  //result = node.readHoldingRegisters(83,6);
+  result = node.readHoldingRegisters(0x14,1);
   if (result == node.ku8MBSuccess)
   {
-    foo.ints[1]= node.getResponseBuffer(0x00);
-    foo.ints[0]= node.getResponseBuffer(0x01);
-    String stringOne = String(foo.toFloat, 2);
-    D1ox = stringOne + ",";
-    foo.ints[1]= node.getResponseBuffer(0x02);
-    foo.ints[0]= node.getResponseBuffer(0x03);
-    String stringTwo = String(foo.toFloat, 2);
-    D2ox = stringTwo + ",";
-    foo.ints[1]= node.getResponseBuffer(0x04);
-    foo.ints[0]= node.getResponseBuffer(0x05);
-    String stringThree = String(foo.toFloat, 2);
-    D3ox = stringThree;
+    uint16_t rawDO = node.getResponseBuffer(0x00);
+    float doValue = rawDO / 100.0;
+    String s = String(doValue, 2);
+
+    // Mantener formato original: D1ox,D2ox,D3ox
+    D1ox = s + ",";
+    D2ox = s + ",";
+    D3ox = s;          // o aquí podrías poner la temperatura si la lees
     Dox = D1ox + D2ox + D3ox;
-    Serial.println();     
-  delay(1000);
-  Dato = Dox;
-  Serial.println(Dato);
 
-
-   }
-   else
-   {
-     Dox = "Failed,Failed,Failed";
-   }
+    delay(1000);
+    Dato = Dox;
+    Serial.println(Dato);
+  }
+  else
+  {
+    Dox = "Failed,Failed,Failed";  // mantener igual
+  }
   delay(1000);
   Dato = Dox;
   Serial.println(Dato);
