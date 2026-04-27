@@ -1,114 +1,84 @@
 #include <ModbusMaster.h>
-#include <HardwareSerial.h> // Para ESP32, usamos HardwareSerial
+#include <SoftwareSerial.h> 
 
-// Note: this file was received as it is from previous developer, but was never test in the last huillin
-// so might be needed to do some adjustment to make it work
+// ── Pines y parámetros ──────────────────────────────────────────────────────
+constexpr uint8_t  PIN_DE       = 3;
+constexpr uint8_t  PIN_RE       = 2;
+constexpr uint8_t  PIN_RX       = 10;
+constexpr uint8_t  PIN_TX       = 11;
+constexpr uint8_t  SLAVE_ADDR   = 0x14;   // DR-DO1 dirección por defecto
+constexpr uint16_t REG_DO       = 0x14;   // registro oxígeno disuelto
+constexpr uint16_t REG_TEMP     = 0x11;   // registro temperatura
+constexpr uint32_t INTERVAL_MS  = 5000;   // intervalo de muestreo
 
-// Definir el pin de dirección y el pin de habilitación para el MAX485
-#define MAX485_DE      4
-#define MAX485_RE_NEG  5
+#define BAUDE_RATE 9600
 
-union 
-{
-  unsigned int ints[2];
-  float toFloat;
-} foo;
-
-// Crear una instancia de la clase ModbusMaster
+// ── Estado global ───────────────────────────────────────────────────────────
+SoftwareSerial RS485Serial(PIN_RX, PIN_TX);
 ModbusMaster node;
-//datos oxigeno
-String D1ox;
-String D2ox;
-String D3ox;
-String Dox;
+float g_doMgL = 0.0f;
+float g_tempC = 0.0f;
+bool  g_valid = false;
 
-String Dato;
-float num;
+// ── RS485 callbacks ─────────────────────────────────────────────────────────
+void preTransmission()  { digitalWrite(PIN_RE, HIGH); digitalWrite(PIN_DE, HIGH); }
+void postTransmission() { digitalWrite(PIN_RE, LOW);  digitalWrite(PIN_DE, LOW);  }
 
-// Función callback que se ejecuta antes de la transmisión
-void preTransmission() {
-  digitalWrite(MAX485_RE_NEG, 1);
-  digitalWrite(MAX485_DE, 1);
+// ── Lectura del sensor ──────────────────────────────────────────────────────
+bool readDO(float &doOut, float &tempOut) {
+  uint8_t res;
+
+  res = node.readHoldingRegisters(REG_DO, 1);
+  if (res != ModbusMaster::ku8MBSuccess) return false;
+  doOut = node.getResponseBuffer(0) / 100.0f;
+  node.clearResponseBuffer();
+
+  res = node.readHoldingRegisters(REG_TEMP, 1);
+  if (res != ModbusMaster::ku8MBSuccess) return false;
+  tempOut = node.getResponseBuffer(0) / 100.0f;
+  node.clearResponseBuffer();
+
+  return true;
 }
 
-// Función callback que se ejecuta después de la transmisión
-void postTransmission() {
-  digitalWrite(MAX485_RE_NEG, 0);
-  digitalWrite(MAX485_DE, 0);
+// ── Salida serial (mismo formato que antes: "v1,v2,v3") ────────────────────
+void printData(float do_, float temp, bool ok) {
+  if (ok) {
+    // Repetimos DO tres veces para mantener compatibilidad con el sistema
+    Serial.print(do_, 2);  Serial.print(",");
+    Serial.print(do_, 2);  Serial.print(",");
+    //Serial.print(do_, 2);  Serial.print(",");
+    Serial.println(do_, 2);
+    //Serial.println(temp, 2);   // tercer campo = temperatura (antes era otro DO)
+  } else {
+    Serial.println("Failed,Failed,Failed");
+  }
 }
 
+// ── Setup ───────────────────────────────────────────────────────────────────
 void setup() {
-  // Inicializar el puerto serial para la comunicación con el ESP32
-  Serial.begin(115200); // Velocidad de baudios puede variar según tu configuración
+  Serial.begin(BAUDE_RATE);
 
-  // Inicializar el puerto serial para la comunicación con el módulo RS485
-  HardwareSerial &RS485Serial = Serial; // Cambia Serial2 a Serial1, Serial3, etc. según el pin que estés utilizando
-  RS485Serial.begin(9600, SERIAL_8N1); // Configuración del puerto serial: 9600 baudios, 8 bits de datos, sin paridad, 1 bit de parada
-
-  // Inicializar los pines de dirección y habilitación del MAX485
-  pinMode(MAX485_RE_NEG, OUTPUT);
-  pinMode(MAX485_DE, OUTPUT);
+  pinMode(PIN_DE, OUTPUT);
+  pinMode(PIN_RE, OUTPUT);
+  digitalWrite(PIN_DE, LOW);
+  digitalWrite(PIN_RE, LOW);
   
-  // Establecer los pines de dirección y habilitación en bajo para la comunicación RS485
-  digitalWrite(MAX485_RE_NEG, 0);
-  digitalWrite(MAX485_DE, 0);
-   uint8_t result;
-  uint16_t data[6];
-  // Inicializar la instancia de ModbusMaster
-  node.begin(0x14, RS485Serial); // 20 El primer parámetro es la dirección del dispositivo esclavo
-
-  // Asignar las funciones de callback
+  RS485Serial.begin(BAUDE_RATE);
+  node.begin(SLAVE_ADDR, RS485Serial);
   node.preTransmission(preTransmission);
   node.postTransmission(postTransmission);
 
-  //node.writeSingleRegister(1, 8);
-
-  //delay(1000);
-  //result = node.readHoldingRegisters(83,6);
-  // if (result == node.ku8MBSuccess)
-  // {
-  //   foo.ints[1]= node.getResponseBuffer(0x00);
-  //   foo.ints[0]= node.getResponseBuffer(0x01);
-  //   foo.ints[1]= node.getResponseBuffer(0x02);
-  //   foo.ints[0]= node.getResponseBuffer(0x03);
-  //   foo.ints[1]= node.getResponseBuffer(0x04);
-  //   foo.ints[0]= node.getResponseBuffer(0x05);
-  //   //Serial.println();     
-  // }
-
+  Serial.println("DR-DO1 listo");
 }
 
+// ── Loop ────────────────────────────────────────────────────────────────────
 void loop() {
- 
-  uint8_t result;
-  uint16_t data[6];
-  Serial.println("Activado");
-  //delay(300000);
-  //result = node.readHoldingRegisters(83,6);
-  result = node.readHoldingRegisters(0x14,1);
-  if (result == node.ku8MBSuccess)
-  {
-    uint16_t rawDO = node.getResponseBuffer(0x00);
-    float doValue = rawDO / 100.0;
-    String s = String(doValue, 2);
+  static uint32_t lastMs = 0;
 
-    // Mantener formato original: D1ox,D2ox,D3ox
-    D1ox = s + ",";
-    D2ox = s + ",";
-    D3ox = s;          // o aquí podrías poner la temperatura si la lees
-    Dox = D1ox + D2ox + D3ox;
-
-    delay(1000);
-    Dato = Dox;
-    Serial.println(Dato);
+  if (millis() - lastMs >= INTERVAL_MS) {
+    lastMs = millis();
+    g_valid = readDO(g_doMgL, g_tempC);
+    printData(g_doMgL, g_tempC, g_valid);
   }
-  else
-  {
-    Dox = "Failed,Failed,Failed";  // mantener igual
-  }
-  delay(1000);
-  Dato = Dox;
-  Serial.println(Dato);
-  node.clearResponseBuffer();
- 
 }
