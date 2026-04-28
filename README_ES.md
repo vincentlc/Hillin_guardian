@@ -52,7 +52,7 @@ Este proyecto tiene como objetivo ayudar a la comunidad local a monitorear difer
 ### `Doc/`
 
 - Contiene la documentación del proyecto, incluidos diagramas y la arquitectura del sistema.
-- Ejemplo: `Diagrama general.drawio.svg` proporciona una visión general del sistema.
+- Ejemplo: `Diagrama_general.drawio.svg` proporciona una visión general del sistema.
 
 ---
 

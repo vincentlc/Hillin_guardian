@@ -54,7 +54,7 @@ The Spanish version of readme is here [`README_ES.md`](README_ES.md)
 ### `Doc/`
 
 - Contains project documentation, including diagrams and system architecture.
-- Example: `Diagrama general.drawio.svg` provides a high-level overview of the system.
+- Example: `Diagrama_general.drawio.svg` provides a high-level overview of the system.
 
 ---
 
@@ -81,14 +81,17 @@ b) Caja_A:
 c) Caja_B:
 ![Caja_B](Doc/Caja_B.drawio.svg)
 
-d) Modulo_Tierra:
-![Modulo_Tierra](Doc/Modulo_Tierra.drawio.svg)
+d) Modulo_Estacion:
+![Modulo_Estacion](Doc/Modulo_Estacion.drawio.svg)
 
-e) Caja_Carga_A:
-![Caja_Carga_A](Doc/Caja_Carga_A.drawio.svg)
+e) Caja_Alimentacion_A:
+![Caja_Alimentacion_A](Doc/Caja_Alimentacion_A.drawio.svg)
 
-f) Caja_Carga_B:
-![Caja_Carga_B](Doc/Caja_Carga_B.drawio.svg)
+f) Caja_Alimentacion_B:
+![Caja_Alimentacion_B](Doc/Caja_Alimentacion_A.drawio.svg)
+
+f) Diagrama_software:
+![Diagrama_software](Doc/Diagrama_software.drawio.svg)
 
 </details closed>
 
